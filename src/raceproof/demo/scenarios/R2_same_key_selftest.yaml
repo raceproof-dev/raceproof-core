@@ -1,0 +1,19 @@
+# R2: a self-test of the demo PSP, not of the shop. Two completions with the same idempotency key at the same moment:
+# exactly one is processed, the other gets 409 (in progress). Run it to see what the shop's two paths face.
+name: R2 demo PSP same-key race (self-test)
+repeat: 20
+run_all: false
+run_all_note: tests the demo PSP itself, not the shop
+jitter_ms: [0, 50]
+steps:
+  - reset: {}
+  - http: {name: create, url: "${fake}/payments", json: {reference: "${run_id}"}, save: {trans_id: id}}
+  - parallel:
+      - http: {name: a, url: "${fake}/payments/complete", headers: {Idempotency-Key: "${trans_id}-k"},
+               json: {payment: "${trans_id}", result: authorised}}
+      - http: {name: b, url: "${fake}/payments/complete", headers: {Idempotency-Key: "${trans_id}-k"},
+               json: {payment: "${trans_id}", result: abandoned}}
+assert:
+  - calls: {path: /payments/complete, equals: 2}
+  - status_counts: {names: [a, b], counts: {200: 1, 409: 1}}
+  - error_codes: {names: [a, b], codes: ["in_progress"]}

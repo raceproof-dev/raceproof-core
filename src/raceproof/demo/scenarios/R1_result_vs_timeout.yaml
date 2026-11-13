@@ -1,0 +1,19 @@
+# R1: the shopper's result reaches the shop just as the shop's own timeout gives up on the payment.
+# Both paths send their result to the PSP with the same idempotency key; the PSP answers the loser 409 (in progress).
+# A correct shop tells the merchant exactly one final status and stores the status the PSP decided.
+# The result is posted from 300 ms before to 300 ms after the timeout (jitter), so some runs overlap and some do not.
+name: R1 shopper's result arrives as the shop's timeout fires
+repeat: 20
+jitter_ms: [0, 600]
+steps:
+  - reset: {}
+  - http: {name: pay, url: "${gateway.base_url}/pay", json: {reference: "${run_id}"}, save: {trans_id: id}}
+  - parallel:
+      - sequence:
+          - sleep_ms: ${timing.near_watchdog_ms}
+          - http: {name: result, url: "${gateway.base_url}/result/${trans_id}", json: {result: authorised}, expect: 200}
+  - wait_sql: {named: is_final, equals: 1, timeout_ms: 5000}
+  - sleep_ms: 800                   # let the other path finish too
+assert:
+  - sql_equals: {named: merchant_final_count, value: 1}
+  - tx_status: {in: [completed, refused]}
