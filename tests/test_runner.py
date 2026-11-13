@@ -265,6 +265,21 @@ class PspSelection(unittest.TestCase):
                     asyncio.run(runner.main([sc, "--config", cfg.replace("lab.yaml", "ok.yaml")]))
             self.assertIn("is a acme scenario, but lab.yaml has psp: demo", str(e.exception))
 
+    def test_a_scenario_for_an_optional_feature_is_not_applicable_without_its_config_key(self):
+        sc = {"name": "x", "applies_if": ["gateway.skip_method_url"]}
+        self.assertEqual(runner.not_applicable(sc, {"gateway": {"method_url": "u"}}), ["gateway.skip_method_url"])
+        self.assertEqual(runner.not_applicable(sc, {"gateway": {"skip_method_url": ""}}), ["gateway.skip_method_url"])
+        self.assertEqual(runner.not_applicable(sc, {"gateway": {"skip_method_url": "http://x/skip"}}), [])
+        self.assertEqual(runner.not_applicable({"name": "y"}, {}), [])
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "s.yaml")
+            open(path, "w").write("name: optional\napplies_if: gateway.skip_method_url\nsteps: [{sleep_ms: 1}]\n")
+            cfg = os.path.join(d, "lab.yaml")
+            open(cfg, "w").write("fake: http://127.0.0.1:1\n")
+            p = subprocess.run([*RUN, path, "--config", cfg], cwd=d, capture_output=True, text=True, timeout=60)
+            self.assertEqual(p.returncode, runner.NOT_APPLICABLE, p.stdout + p.stderr)
+            self.assertIn("NOT APPLICABLE", p.stdout)
+
     def test_a_psp_without_a_race_runs_and_reports(self):
         import types
         quiet = types.SimpleNamespace(NAME="none", TITLE="None", RACE=None, is_stray=lambda c, t: False,

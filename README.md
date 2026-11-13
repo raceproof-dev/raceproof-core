@@ -41,7 +41,23 @@ race window and in what order the two completions reached the PSP.
 | `raceproof demo` | start the demo PSP and shop, write `raceproof-demo.yaml` |
 | `raceproof packs` | list the installed packs |
 
-Exit codes of `run`: 0 passed, 1 failed, 3 too many inconclusive runs to trust the result.
+Exit codes of `run`: 0 passed, 1 failed, 3 too many inconclusive runs to trust the result, 4 not applicable (the
+scenario tests an optional feature your config does not set, see `applies_if`).
+
+## PSP packs
+
+The demo pack shows the idea on a toy shop. The races of real PSPs need a fake that answers as the real PSP does
+(measured in its sandbox: idempotency replays and "already in progress" errors, webhook timing and retries). That is
+what the commercial packs add:
+
+| Pack | Fake | Scenarios |
+|---|---|---|
+| `raceproof-adyen` | Adyen's native 3DS2 (`/payments`, `/payments/details`, the issuer's ACS, signed webhooks) | M1 (method step), C1-C5 (challenge), W1-W4 (webhooks) |
+| `raceproof-stripe` | Stripe PaymentIntents with Stripe's 3DS page, signed webhooks | S1-S9 |
+
+Each pack ships an example config for [paygate-demo](https://github.com/raceproof-dev/paygate-demo), an open-source
+gateway with two of these races (C3 and S1) behind runtime switches, so you can watch a scenario fail and pass before
+pointing it at your own gateway. A time-limited trial of the packs is available on request.
 
 ## Your gateway
 

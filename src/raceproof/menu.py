@@ -12,6 +12,7 @@ the rest. The output goes to the console and to results/<timestamp>/<scenario>.l
 Scenario keys read here (the runner ignores them):
   needs: [..]           short requirements shown before the scenario runs (e.g. the gateway restarted with some setting)
   run_all: false        leave it out of "all" (it can still be picked by number); run_all_note says why
+  applies_if: [..]      (read by the runner) config keys of an optional gateway feature; unset -> "not applicable"
   settle_after_s: N     pause before the NEXT scenario (default 3 s), e.g. to let a circuit breaker close again
 """
 import argparse
@@ -121,6 +122,8 @@ def parse_summary(output):
 
 
 def verdict(code, summary):
+    if code == 4:
+        return "not applicable (an optional feature your lab.yaml does not configure)"
     if summary is None:
         return "ERROR (no report: setup problem or crash, see the log)"
     if code == 0:

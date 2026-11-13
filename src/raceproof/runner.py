@@ -24,7 +24,9 @@ Scenarios refer to it as ${gateway.method_url}, ${timing.watchdog_ms}, ... to st
 query name (`named: merchant_final_count`), so a scenario never contains your table names.
 
 Scenario keys: name, repeat, jitter_ms: [min, max], vars: {k: v}, max_inconclusive_pct (default 20), steps: [...], assert: [...]
-  (needs, run_all, run_all_note, settle_after_s are for the menu, lab.py, and ignored here)
+  applies_if: [gateway.skip_method_url, ...]   config keys for an optional feature of your gateway; if one is not set,
+               the scenario is NOT APPLICABLE: nothing runs and the exit code is 4 (the menu shows "not applicable")
+  (needs, run_all, run_all_note, settle_after_s are for the menu and ignored here)
 Every string may use ${var} or ${section.key} (config values and scenario `vars`). An undefined one is an error. Built-in vars: ${fake}, ${run_id}, ${run_seq} (5 digits, fits inside a UUID). `save` and `compute` add more.
 
 Steps
@@ -117,6 +119,15 @@ def check_defined(obj, where=""):
     if left:
         raise ValueError(f"undefined variable(s) {', '.join('${' + n + '}' for n in left)}{where}: "
                          f"set them in lab.yaml (see lab.example.yaml) or in the scenario's `vars`")
+
+
+NOT_APPLICABLE = 4
+
+
+def not_applicable(scenario, config):
+    """The `applies_if` config keys the config leaves unset (empty when the scenario applies)."""
+    keys = scenario.get("applies_if") or []
+    return [k for k in ([keys] if isinstance(keys, str) else keys) if get_var(config or {}, k) in (_MISSING, None, "")]
 
 
 def psp_for(config):
@@ -600,6 +611,8 @@ def in_window(o):
 
 def report(name, results, race=None):
     """The standard report. Returns (n_failed_runs, n_inconclusive)."""
+    if race and not any(r["pat"] for r in results):
+        race = None          # a scenario about another step (e.g. the method step): the pack's race lines would say nothing
     if race:
         posted, rival_text, rival_short = race["posted"], race["rival_text"], race.get("rival_short", race["rival"])
     n = len(results)
@@ -736,6 +749,11 @@ async def main(argv=None):
     if owner and owner != psp.NAME:
         sys.exit(f"{args.scenario} is a {owner} scenario, but lab.yaml has psp: {psp.NAME}. "
                  f"Use a config for {owner} (--config) or a scenario of the {psp.NAME} pack")
+    unset = not_applicable(scenario, config)
+    if unset:
+        print(f"NOT APPLICABLE: {scenario.get('name', args.scenario)} tests an optional feature; lab.yaml does not set "
+              f"{', '.join(unset)}, so your gateway is taken not to have it. Nothing was run.")
+        sys.exit(NOT_APPLICABLE)
     for val, names in duplicate_statuses(config).items():
         print(f"note: status {val!r} is shared by {', '.join(names)}; wait_status cannot tell these apart "
               f"(the templates also wait for the fake to see your app's fingerprint call)", file=sys.stderr)

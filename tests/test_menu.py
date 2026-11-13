@@ -94,6 +94,9 @@ class Report(unittest.TestCase):
         self.assertEqual(lab.exit_code([ok, untrusted], 2), 3)
         self.assertEqual(lab.exit_code([ok], 2), 130)                 # stopped with Ctrl+C
         self.assertTrue(lab.verdict(1, None).startswith("ERROR"))     # sys.exit("message") is also exit 1: no report = setup error
+        na = (None, 4, None, 0)                                       # applies_if: the gateway lacks the optional feature
+        self.assertTrue(lab.verdict(4, None).startswith("not applicable"))
+        self.assertEqual(lab.exit_code([ok, na], 2), 0)
 
 
 class EndToEnd(unittest.TestCase):
