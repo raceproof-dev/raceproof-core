@@ -27,7 +27,9 @@ Scenario keys: name, repeat, jitter_ms: [min, max], vars: {k: v}, max_inconclusi
   applies_if: [gateway.skip_method_url, ...]   config keys for an optional feature of your gateway; if one is not set,
                the scenario is NOT APPLICABLE: nothing runs and the exit code is 4 (the menu shows "not applicable")
   (needs, run_all, run_all_note, settle_after_s are for the menu and ignored here)
-Every string may use ${var} or ${section.key} (config values and scenario `vars`). An undefined one is an error. Built-in vars: ${fake}, ${run_id}, ${run_seq} (5 digits, fits inside a UUID). `save` and `compute` add more.
+Every string may use ${var} or ${section.key} (config values and scenario `vars`). An undefined one is an error. Built-in vars: ${fake}, ${run_id}, ${run_uid} (12 hex digits from a microsecond clock: the last group of a UUID,
+unique for ~9 years, so ids never meet the rows of earlier runs), ${run_seq} (5 digits; repeats after 100000 s, kept for
+old configs). `save` and `compute` add more.
 
 Steps
   - reset: {}                                   clear the fake's state
@@ -173,6 +175,15 @@ def lookup(obj, dotted):
 
 
 _SEQ = itertools.count(int(time.time()) % 100000)     # 5-digit run counter, unique per run in this process
+_UID_LAST = [0]
+
+
+def run_uid():
+    """12 hex digits from the microsecond clock, strictly increasing in this process: fits a UUID's last group and does
+    not repeat for 16**12 us (~9 years), so a run's ids never collide with rows left by earlier runs."""
+    now = max(time.time_ns() // 1000, _UID_LAST[0] + 1)
+    _UID_LAST[0] = now
+    return f"{now % 16 ** 12:012x}"
 
 
 class Run:
@@ -185,7 +196,7 @@ class Run:
         self.cres_posted_at = None      # when the runner told the fake to post the shopper's CRes to the gateway
         self.vars = {**(config or {}), **scenario.get("vars", {}), "fake": self.fake,
                      "run_id": f"{int(time.time() * 1000)}-{random.randint(0, 9999)}",
-                     "run_seq": f"{next(_SEQ) % 100000:05d}"}
+                     "run_seq": f"{next(_SEQ) % 100000:05d}", "run_uid": run_uid()}
 
     async def step(self, st, jitter=None):
         if "sequence" in st:            # a parallel child that runs steps in order; its own jitter_ms overrides the scenario's

@@ -64,6 +64,15 @@ class Vars(Base):
         self.assertIn("${gateway.nope}", str(c.exception)); self.assertIn("lab.yaml", str(c.exception))
         self.assertIn("undefined variable", str(runner_run_error(self)))
 
+    def test_run_uid_is_a_uuid_group_and_never_repeats(self):
+        import re
+        uids = [runner.run_uid() for _ in range(2000)]
+        self.assertEqual(len(set(uids)), 2000)
+        self.assertTrue(all(re.fullmatch(r"[0-9a-f]{12}", u) for u in uids))
+        self.assertEqual(uids, sorted(uids))
+        r = runner.Run({"name": "t", "steps": []}, "http://x", None, {})
+        self.assertRegex(r.vars["run_uid"], r"^[0-9a-f]{12}$")
+
     def test_json_file_from_config_path_with_run_seq(self):
         os.makedirs(os.path.join(self.d.name, "payloads"))
         open(os.path.join(self.d.name, "payloads", "p.json"), "w").write('{"id": "11111111-1111-4111-8111-1111111${run_seq}"}')
