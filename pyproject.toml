@@ -10,6 +10,8 @@ readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.10"
+keywords = ["3-D Secure", "3DS2", "race condition", "payments", "payment gateway", "testing", "idempotency",
+            "webhooks", "PSP", "Adyen", "Stripe"]
 dependencies = ["requests>=2.28", "pyyaml>=6", "starlette>=0.27", "uvicorn>=0.22"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -17,6 +19,11 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Software Development :: Testing",
 ]
+
+[project.urls]
+Homepage = "https://raceproof.dev"
+Source = "https://github.com/raceproof-dev/raceproof-core"
+Issues = "https://github.com/raceproof-dev/raceproof-core/issues"
 
 [project.optional-dependencies]
 postgres = ["psycopg[binary]>=3.1"]
