@@ -74,4 +74,4 @@ the control API the runner uses), its scenarios, and a few hooks; `raceproof/psp
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE).
+Apache-2.0. See [LICENSE](https://github.com/raceproof-dev/raceproof-core/blob/main/LICENSE).
