@@ -49,7 +49,9 @@ def discover(scenario_dir=None, psp=None):
     if not scenario_dir:
         try:
             pack = psps.load(psp)
-        except ValueError:
+        except ValueError as e:
+            if (psp or DEFAULT_PSP).strip().lower() in psps.available():
+                sys.exit(str(e))            # the pack is installed but refuses to load (e.g. a trial build that ended)
             return []
         scenario_dir = psps.scenarios_dir(pack)
         if not scenario_dir:
